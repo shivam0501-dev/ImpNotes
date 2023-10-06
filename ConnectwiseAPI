@@ -1,0 +1,60 @@
+url =="https://developer.connectwise.com/Special:Userlogin?returntotitle=Products%2FManage%2FREST#tab=login"
+username="tom.glover@responsivetechnologypartners.com"
+password="O4Vlqj!G9!"
+
+String ConnectWiseApiUrl = "https://service.responsivetechnologypartners.com/v4_6_release/apis/3.0/";
+        String ConnectWiseApiUserName = "responsive+QA3mZkd7zh0tOKJu";
+        String ConnectWiseApiPassword = "i1HxsoEduDIi0JYl";
+        string ClientId = "d3b49880-6a16-411b-b947-29101ca06ca4";
+        #endregion
+        string APIUsername = "qbouser@pinelandcogentes.com";
+        string APIPassword = "2vN7iT7SdCsxlEn";
+        string APITrackingID = "XONI4J56WOIFV65PVXOQZPZ5CAA";
+5:50
+public async Task<List<Ticket>> GetAllConnectWiseTickets(string contactId)
+        {
+            List<Ticket> tickets = new List<Ticket>();
+            try
+            {
+                var url = "/service/tickets";
+                string encoded = Convert.ToBase64String(Encoding.ASCII.GetBytes(("responsive+QA3mZkd7zh0tOKJu" + ":" + "i1HxsoEduDIi0JYl")));
+                var jSonData = JsonConvert.SerializeObject(contactId);
+                using (var httpClient = new HttpClient())
+                {
+                    httpClient.BaseAddress = new Uri(ConnectWiseApiUrl);
+                    //httpClient.BaseAddress = new Uri("https://service.responsivetechnologypartners.com/v4_6_release/apis/3.0/");
+                    httpClient.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
+                    httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Basic", encoded);
+                    httpClient.DefaultRequestHeaders.Add("ClientId", ClientId);
+                    //httpClient.DefaultRequestHeaders.Add("ContactId", contactId);
+                    //var newUrl = ConnectWiseApiUrl + url + "?ContactId=" + contactId;
+                    var newUrl = ConnectWiseApiUrl + url + "?conditions=contact/id=" + contactId + "";
+                    using (var response =await httpClient.GetAsync(newUrl))
+                    {
+                        if (response.IsSuccessStatusCode)
+                        {
+                            using (var content = response.Content)
+                            {
+                                var result = await content.ReadAsStringAsync();
+                                tickets = JsonConvert.DeserializeObject<List<Ticket>>(result);
+                            }
+                        }
+                    }
+                    return tickets;
+                }
+            }
+            catch (Exception ex)
+            {
+                return null;
+            }
+        }
+============================================Open Google============================================================
+private void btnGoogle_Click(object sender, EventArgs e)
+        {
+            string strUrl = ConfigurationManager.AppSettings["GoogleHomeURL"];
+            Process proc = new Process();
+            ProcessStartInfo startInfo = new ProcessStartInfo(strUrl);
+            proc.StartInfo = startInfo;
+            proc.Start();
+        }
+=============================================================================
