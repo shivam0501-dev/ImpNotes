@@ -1,0 +1,191 @@
+UI
+DataAccess
+Model
+Utility
+============
+Repository==>
+              public class Repository<T> : IRepository<T> where T : class
+              {
+              private readonly DataContext _db;
+              internal DbSet<T> _dbset;
+          
+              public Repository(DataContext db)
+              {
+                  _db = db;
+                  this._dbset=_db.Set<T>();
+                  _db.products.Include(u => u.category).Include(a => a.categoryid);
+              }
+          
+              public void Add(T entity)
+              {
+                  _dbset.Add(entity);
+              }
+          
+              public T Get(Expression<Func<T, bool>> filter, string? includeProp = null)
+              {
+                  IQueryable<T> query = _dbset;
+                  query=query.Where(filter);
+                  if (!string.IsNullOrEmpty(includeProp))
+                  {
+                      foreach (var item in includeProp
+                      .Split(new char[] { ',' }, StringSplitOptions.RemoveEmptyEntries))
+                      {
+                          query = query.Include(item);
+                      }
+                  }
+                  return query.FirstOrDefault(filter);
+              }
+          
+              public IEnumerable<T> GetAll(Expression<Func<T, bool>>? filter,string? includeProp = null)
+              {
+                  IQueryable<T> query= _dbset;
+                  if (filter != null)
+                  {
+                      query = query.Where(filter);
+                  }
+                  if (!string.IsNullOrEmpty(includeProp))
+                  {
+                      foreach (var item in includeProp
+                      .Split(new char[] {','},StringSplitOptions.RemoveEmptyEntries)){
+                          query = query.Include(item);
+                      }
+                  }
+                  return query.ToList();
+              }
+          
+              public void Remove(T entity)
+              {
+                  _dbset.Remove(entity);
+              }
+          
+              public void RemoveRange(IEnumerable<T> entities)
+              {
+                  _dbset.RemoveRange(entities);
+              }
+          
+              public void Update(T entity)
+              {
+                  _dbset.Update(entity);
+              }
+          }
+IRepository==>
+              public interface IRepository<T> where T : class
+              {
+                  IEnumerable<T> GetAll(Expression<Func<T, bool>>? filter=null,string? includeProp=null);
+              
+                  T Get(Expression<Func<T, bool>> filter, string? includeProp = null);
+              
+                  void Update(T entity);
+                  void Remove(T entity);
+                  void Add(T entity);
+                  void RemoveRange(IEnumerable<T> entities); 
+              }
+==================================================================================================================================================================================================
+UnitOf Work.cs==>
+                 public class UnitOfWork : IUnitOfWork
+                 {
+                     private readonly DataContext _context;
+                     public ICategoryRepository Category { get; private set; }
+                     public IProductRepository Product { get; private set; }
+                     public ICompanyRepository Company { get; private set; }
+                     public IShoppingCartRepository shoppingCart { get; private set; }
+                     public IApplicationUserRepository applicationUser { get; }
+                     public IOrderDetailsRepository orderDetails { get; }
+                     public IOrderHeaderRepository orderHeader { get; }
+                
+                     public UnitOfWork(DataContext context)
+                     {
+                         _context = context;
+                         Category = new CategoryRepository(context);
+                         Product = new ProductRepository(context);
+                         Company = new CompanyRepository(context);
+                         shoppingCart = new ShoppingCartRepository(context);
+                         applicationUser = new ApplicationUserRepository(context);
+                         orderDetails = new OrderDetailsRepository(context);
+                         orderHeader = new OrderHeaderRepository(context);
+                     }
+                
+                     public void save()
+                     {
+                         _context.SaveChanges();
+                     }
+                 }
+
+IUnitOfWork.cs==>
+             public interface IUnitOfWork
+             {
+                 public ICategoryRepository Category { get; }
+                 public IProductRepository Product { get; }
+                 public ICompanyRepository Company { get; }
+                 public IShoppingCartRepository shoppingCart { get;}
+                 public IApplicationUserRepository applicationUser { get;}
+                 public IOrderDetailsRepository orderDetails { get; }
+                 public IOrderHeaderRepository orderHeader { get; }
+            
+                 void save();
+             }
+Program.cs==>
+            var builder = WebApplication.CreateBuilder(args);
+            
+            // Add services to the container.
+            builder.Services.AddControllersWithViews().AddRazorRuntimeCompilation();
+            builder.Services.AddDbContext<DataContext>(op=>op.UseSqlServer(builder.Configuration.GetConnectionString("Constr")));
+            
+            builder.Services.AddIdentity<IdentityUser,IdentityRole>().AddEntityFrameworkStores<DataContext>().AddDefaultTokenProviders(); ;
+            
+            builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
+            
+            builder.Services.AddScoped<IEmailSender, EmailSender>();
+            builder.Services.AddRazorPages();
+            
+            builder.Services.ConfigureApplicationCookie(option =>
+            {
+                option.AccessDeniedPath = $"/Identity/Account/AccessDenied";
+                option.LoginPath = $"/Identity/Account/Login";
+                option.LogoutPath = $"/Identity/Account/Logout";
+            });
+            
+            
+            
+            var app = builder.Build();
+            
+            // Configure the HTTP request pipeline.
+            if (!app.Environment.IsDevelopment())
+            {
+                app.UseExceptionHandler("/Home/Error");
+                // The default HSTS value is 30 days. You may want to change this for production scenarios, see https://aka.ms/aspnetcore-hsts.
+                app.UseHsts();
+            }
+            
+            app.UseHttpsRedirection();
+            app.UseStaticFiles();
+            
+            StripeConfiguration.ApiKey=builder.Configuration.GetSection("Stripe:Secretkey").Get<string>();
+            
+            app.UseRouting();
+            
+            app.UseAuthentication();
+            app.UseAuthorization();
+            
+            app.MapRazorPages();
+            
+            app.MapControllerRoute(
+                name: "default",
+                pattern: "{area=Customer}/{controller=Home}/{action=Index}/{id?}");
+            
+            app.Run();
+=================================================================usingRepository in otherRepository like product repository============================================================================================
+ProductRepository.cs==>
+ public class ProductRepository : Repository<Product>, IProductRepository
+ {
+     private readonly DataContext _context;
+     public ProductRepository(DataContext context) : base(context)
+     {
+         _context = context;
+     }
+ }
+IProductRepository.cs==>
+public interface IProductRepository:IRepository<Product>
+{
+}
+
