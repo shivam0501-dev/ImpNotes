@@ -1,0 +1,20 @@
+function AddClient() {
+    var formData = new FormData();
+    var fileInput = $('#imageFile')[0];
+    formData.append('imageFile', fileInput.files[0]);
+    $.ajax({
+        url: '/Clients/AddClient',
+        type: 'POST',
+        data: formData,
+        processData: false,
+        contentType: false,
+        success: function (response) {
+            // Handle the server response here
+            console.log(response);
+        },
+        error: function (error) {
+            // Handle error if any
+            console.error(error);
+        }
+    });
+}
