@@ -1,0 +1,81 @@
+Upload Images In .net core
+===========================================
+Controller.cs==>
+       public IActionResult upsert(Product p, IFormFile? file)
+         {
+             if (ModelState.IsValid)
+             {
+                 string wwwrootpath = _environment.WebRootPath;
+                 if (file != null)
+                 {
+                     string filename = Guid.NewGuid().ToString() + Path.GetExtension(file.FileName);
+                     string productpath = Path.Combine(wwwrootpath, @"images\product");
+                     if(!string.IsNullOrEmpty(p.imageUrl)) {
+                         var oldproductimg = Path.Combine(wwwrootpath, p.imageUrl.TrimStart('\\'));
+                         if (System.IO.File.Exists(oldproductimg))
+                         {
+                             System.IO.File.Delete(oldproductimg);
+                         }
+                     }
+                     using (var filestream = new FileStream(Path.Combine(productpath, filename), FileMode.Create))
+                     {
+                         file.CopyTo(filestream);
+                     }
+                     p.imageUrl = @"\images\product\" + filename;
+                 }
+        
+                 if (p.id == 0)
+                 {
+                     _unitOfWork.Product.Add(p);
+                     _unitOfWork.save();
+                     TempData["success"] = "product Created Successfully";
+                     return RedirectToAction("Index");
+                 }
+                 else
+                 {
+                     var pr = _unitOfWork.Product.Get(u=>u.id==p.id);
+                     if (pr != null)
+                     {
+                         pr.title= p.title;
+                         pr.description= p.description;
+                         pr.imageUrl= p.imageUrl;    
+                         pr.ISBN = p.ISBN;
+                         pr.categoryid= p.categoryid;
+                         pr.Author = p.Author;
+                         pr.Price= p.Price;
+                         pr.ListPrice= p.ListPrice;
+                         pr.Price50= p.Price50;
+                         pr.Price100=p.Price100;
+                         _unitOfWork.Product.Update(pr);
+        
+                         _unitOfWork.save();
+                         TempData["success"] = "product Updated Successfully";
+                         return RedirectToAction("Index");
+                     }
+                 }
+             }
+             return View(p);
+         }
+DeleteImage controller.cs====>
+             public IActionResult DeleteAPI(int? id)
+             {
+                 Product? product = _unitOfWork.Product.Get(u => u.id == id);
+                 if(product == null)
+                 {
+                     return Json(new {success=false,message="Error While Deleting Item"});
+                 }
+                 if(product.imageUrl!= null)
+                 {
+                     var oldproductimg = Path.Combine(_environment.WebRootPath, product.imageUrl.TrimStart('\\'));
+                     if (System.IO.File.Exists(oldproductimg))
+                     {
+                         System.IO.File.Delete(oldproductimg);
+                     }
+                 }
+                 _unitOfWork.Product.Remove(product);
+                 _unitOfWork.save();
+                 return Json(new { success = true, message = "Product Deleted Successfully" });
+             }
+view.cshtml==>
+
+              
