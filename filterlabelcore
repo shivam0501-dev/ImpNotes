@@ -1,0 +1,160 @@
+=============================================================How Create filter in .net core==========================
+View Page ==>
+    @{
+    var status = Context.Request.Query["status"];
+    var InProgress = "text-primary";
+    var pending = "text-primary";
+    var completed = "text-primary";
+    var approved = "text-primary";
+    var all = "text-primary";
+
+    switch (status)
+    {
+        case "pending":
+            pending =  "active text-white bg-primary";
+            break;
+        case "InProgress":
+            InProgress = "active text-white bg-primary";
+            break;
+        case "completed":
+             completed = "active text-white bg-primary";
+            break;
+        case "approved":
+            approved = "active text-white bg-primary";
+            break;
+        case "all":
+            all = "active text-white bg-primary";
+            break;
+    }
+}
+        <div class="container">
+            <!-- Include your partial here if needed -->
+            <div class="row pt-4">
+                <div class="col-12">
+                    <div class="bg-success p-3 rounded shadow">
+                        <h2 class="text-primary text-center text-white">Order List</h2>
+                    </div>
+                </div>
+            </div>
+            <div class="row mt-4">
+                <div class="col-12">
+                    <div class="table-responsive">
+                        <div class="d-flex justify-content-between pb-1 pb-2">
+                            <span></span>
+                            <ul class="list-group list-group-horizontal-sm">
+                                <a style="text-decoration:none" asp-controller="Order" asp-action="Index" asp-route-status="InProgress">
+                        <li class="list-group-item @InProgress">InProgress</li>
+                                </a>
+                                <a style="text-decoration:none" asp-controller="Order" asp-action="Index" asp-route-status="pending">
+                        <li class="list-group-item @pending">Payment Pending</li>
+                                </a>
+                                <a style="text-decoration:none" asp-controller="Order" asp-action="Index" asp-route-status="completed">
+                        <li class="list-group-item @completed">Completed</li>
+                                </a>
+                                <a style="text-decoration:none" asp-controller="Order" asp-action="Index" asp-route-status="approved">
+                        <li class="list-group-item @approved">Approved</li>
+                                </a>
+                                <a style="text-decoration:none" asp-controller="Order" asp-action="Index" asp-route-status="all">
+                        <li class="list-group-item @all">All</li>
+                                </a>
+                            </ul>
+                        </div>
+                        <table id="tbldata" class="table table-bordered">
+                            <thead class="bg-primary text-white">
+                                <tr>
+                                    <th scope="col">ID</th>
+                                    <th scope="col">Name</th>
+                                    <th scope="col">Phone Number</th>
+                                    <th scope="col">Email</th>
+                                    <th scope="col">Status</th>
+                                    <th scope="col">Total</th>
+                                    <th scope="col">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody class="p-1">
+                                <!-- Your table rows will go here -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+  
+@section Scripts{
+    <script src="~/js/order.js"></script>
+}
+Js Page ==>
+var datatable;
+$(document).ready(function () {
+    var url = window.location.search;
+    if (url.includes("InProgress")) {
+        loaddata("InProgress");
+    }
+    else {
+        if (url.includes("approved")) {
+            loaddata("approved");
+        } else {
+            if (url.includes("completed")) {
+                loaddata("completed");
+            }
+            else {
+                if (url.includes("pending")) {
+                    loaddata("pending");
+                }
+                else {
+                    loaddata("all");
+                }
+            }
+        }
+    }
+});
+
+
+function loaddata(status) {
+    datatable = $('#tbldata').DataTable({
+        "ajax": { url: '/admin/Order/GetAll?status=' + status },
+        "columns": [
+            { data: 'id'},
+            { data: 'name'},
+            { data: 'phoneNumber'},
+            { data: 'applicationUser.email'},
+            { data: 'orderStatus'},
+            { data: 'orderTotal'},
+            {
+                data: 'id',
+                'render': function (data) {
+                    return `<div class="w-100 btn-group" role="group">
+                            <a href="/admin/Order/details?ordrId=${data}" class="mx-2 btn btn-primary"><i class="bi bi-pencil-square"></i>Edit</a>
+                           
+                            </div>`
+                },
+                "width": "10%"
+            }
+
+
+        ]
+    });
+}
+Controller page==>
+public IActionResult GetAll(string status) {
+    IEnumerable<OrderHeader> orderHeaders = _unitOfWork.orderHeader.GetAll(includeProp: "applicationUser").ToList();
+    switch (status)
+    {
+        case "pending":
+            orderHeaders = orderHeaders.Where(a=>a.OrderStatus==SD.PaymentStatusDelayedPayment);
+            break;
+        case "InProgress":
+            orderHeaders = orderHeaders.Where(a => a.OrderStatus == SD.StatusProgress);
+            break;
+        case "completed":
+            orderHeaders = orderHeaders.Where(a => a.OrderStatus == SD.StatusShipped);
+            break;
+        case "approved":
+            orderHeaders = orderHeaders.Where(a => a.OrderStatus == SD.StatusApproved);
+            break;
+        default:
+            break;
+    }
+    return Json(new {data= orderHeaders });
+}
+=================================================================================================================================================================================================================
