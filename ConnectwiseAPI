@@ -1,6 +1,4 @@
-url =="https://developer.connectwise.com/Special:Userlogin?returntotitle=Products%2FManage%2FREST#tab=login"
-username="tom.glover@responsivetechnologypartners.com"
-password="O4Vlqj!G9!"
+
 
 String ConnectWiseApiUrl = "https://service.responsivetechnologypartners.com/v4_6_release/apis/3.0/";
         String ConnectWiseApiUserName = "responsive+QA3mZkd7zh0tOKJu";
