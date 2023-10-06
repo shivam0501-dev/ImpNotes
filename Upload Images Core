@@ -76,6 +76,30 @@ DeleteImage controller.cs====>
                  _unitOfWork.save();
                  return Json(new { success = true, message = "Product Deleted Successfully" });
              }
-view.cshtml==>
+==========================================Using Jquery=====================================
+function InsertUpdate() {
+    var fd = new FormData();
+    var files = $("#fileUpload").get(0).files;
+    if (files.length > 0) {
+        fd.append("ID", $("#hfID").val());
+        fd.append("Name", $("#txtName").val());
+        fd.append("Branch", $("#ddlBranch").val());
+        fd.append("Salary", $("#txtSalary").val());
+        fd.append("UserID", $("#txtUserID").val());
+        fd.append("MyImages", files[0]);
+    }
+    $.ajax(
+        {
+            url: "/Employee/InsertUpdate",
+            data: fd, Name: $("#txtName").val(),
+            processData: false,
+            contentType: false,
+            type: "POST",
+            success: function (data) {
+                alert("Files Uploaded!");
+            }
+        }
+    );
+}
 
               
