@@ -1,0 +1,289 @@
+Controller.cs==>
+  var user = await _userManager.FindByEmailAsync(User.GetUsername());
+                        var token = await _userManager.GenerateEmailConfirmationTokenAsync(user);
+                        var confirmationUrl = Url.Action(nameof(ConfirmEmail), "Account", new { token = token, email = r.Email }, Request.Scheme);
+                        var emailContent = _unitOfWork.accountRepository.GetEmailContent(confirmationUrl, r.Email, user.Name, _webHostEnvironment.WebRootPath);
+                        var emailService = new EmailHelper();
+                        bool emailResponse = emailService.SendEmailRegistration(r.Email, emailContent, "Confirm your email address to get started on EPL_Group", AppSettings);
+#region Confirmemail
+        [HttpGet("ConfirmEmail")]
+        public async Task<ActionResult<Status>> ConfirmEmail(string token, string email)
+        {
+            Status s = new Status();
+            var user = await _userManager.FindByEmailAsync(email);
+            if (user == null)
+            {
+                s.statusCode = 0;
+                s.Message = "email not match";
+            }
+            // Verify the email with the token
+            var result = await _userManager.ConfirmEmailAsync(user, token);
+            if (result.Succeeded)
+            {
+                s.statusCode = 1;
+                s.Message = "Email verified you can login this";
+                return s;
+            }
+            else
+            {
+                var errors = result.Errors.Select(e => e.Description);
+                return BadRequest(new { Errors = errors });
+            }
+        }
+        #endregion Confirmemail
+otp send==>
+if (user == null || !(await _userManager.IsEmailConfirmedAsync(user)))
+            {
+                // Don't reveal that the user does not exist or is not confirmed
+                s.statusCode = 0;
+                s.Message = "This email is not registred";
+                s.otp = "";
+                return s;
+            }
+            else
+            {
+                string otp = new Random().Next(10000, 99999).ToString();
+                var emailContent = _unitOfWork.accountRepository.GetEmailotpContent(otp, user.Email, user.Name, _webHostEnvironment.WebRootPath);
+                var emailService = new EmailHelper();
+                bool emailResponse = emailService.SendEmailRegistration(user.Email, emailContent, "Confirm your email address to get started on EPL_Group", AppSettings);
+                if (emailResponse) {
+                    s.statusCode = 1;
+                    s.Message = "Please check your Email";
+                    s.otp = otp;
+                    return s;
+                }
+                else
+                {
+                    s.statusCode = 0;
+                    s.Message = "Something Wrong";
+                    return s;
+                }
+            }
+=================================================================
+public async Task<ActionResult<Status>> ForgotPasswordVerify([FromBody] checkotp l)
+        {
+            Status s = new();
+            var user = await _userManager.FindByEmailAsync(l.email);
+            if (user == null)
+            {
+                s.statusCode = 0;
+                s.Message = "User Does Not Exists";
+                return s;
+            }
+            if (string.Compare(l.NewPassword, l.ConfirmPassword) != 0)
+            {
+                s.statusCode = 0;
+                s.Message = "The New Password And Confirm Password Not match";
+                return s;
+            }
+            string newPasswordHash = _userManager.PasswordHasher.HashPassword(user, l.NewPassword);
+            user.PasswordHash = newPasswordHash;
+            var result = await _userManager.UpdateAsync(user);
+            if (result.Succeeded)
+            {
+                s.statusCode = 1;
+                s.Message = "Password Changed Successfully";
+                return s;
+            }
+            else
+            {
+                s.statusCode = 0;
+                s.Message = "Password not Changed something wrong";
+                return s;
+            }
+        }
+
+#region Change-Password==>
+		[HttpPost("Change-password")]
+        public async Task<ActionResult<Status>> changePassword([FromBody] ChangePassword l)
+        {
+            Status s = new();
+            var user = await _userManager.FindByEmailAsync(l.Email);
+            if (user == null)
+            {
+                s.statusCode = 0;
+                s.Message = "User Does Not Exists";
+                return s;
+            }
+            else
+            {
+                if (string.Compare(l.NewPassword, l.ConfirmPassword) != 0)
+                {
+                    s.statusCode = 0;
+                    s.Message = "The New Password And Confirm Password Not match";
+                    return s;
+                }
+                else
+                {
+                    var res = await _userManager.ChangePasswordAsync(user, l.CurrentPassword, l.NewPassword);
+                    if (!res.Succeeded)
+                    {
+                        s.statusCode = 0;
+                        s.Message = "Password Not Change" + res.ToString();
+                        return s;
+                    }
+                    else
+                    {
+                        s.statusCode = 1;
+                        s.Message = "Password Change Successfully";
+                        return s;
+                    }
+                }
+            }
+        }
+		#endregion Reset-Password==>
+
+public async Task<ActionResult<Status>> ResetpasswordVerify(string token, string email, string newpasssword, string confirmpassword)
+        {
+            Status s = new();
+            var user = await _userManager.FindByEmailAsync(email);
+            if (user == null)
+            {
+                s.statusCode = 0;
+                s.Message = "User Does Not Exists";
+                return s;
+            }
+            if (string.Compare(newpasssword, confirmpassword) != 0)
+            {
+                s.statusCode = 0;
+                s.Message = "The New Password And Confirm Password Not match";
+                return s;
+            }
+            if (string.IsNullOrEmpty(token))
+            {
+                s.statusCode = 0;
+                s.Message = "Invalid Token";
+                return s;
+            }
+            var res = await _userManager.ResetPasswordAsync(user, token, newpasssword);
+            if (!res.Succeeded)
+            {
+                s.statusCode = 0;
+                s.Message = "Password Not reset" + res.ToString();
+                return s;
+            }
+            s.statusCode = 1;
+            s.Message = "Password Reset Successfully";
+            return s;
+            //return Ok(res);
+        }
+
+#region GetEmailresetpasswordContent==>
+
+		public string GetEmailresetpasswordContent(string VerificationLink, string Email, string name, string hostingwebroot)
+		{
+			try
+			{
+				var emailTemplate = Path.Combine(hostingwebroot, @"EmailTemplates\restpasswordTemplate.html");
+				string html = System.IO.File.ReadAllText(emailTemplate);
+				html = html.Replace("[VerificationLinkl]", VerificationLink);
+				html = html.Replace("[email]", Email);
+				html = html.Replace("[name]", name);
+				return html;
+			}
+			catch (Exception ex)
+			{
+				return string.Empty;
+			}
+		}
+		#endregion GetEmailresetpasswordContent
+#region UpdatePassword
+		[HttpPost("UpdatePassword")]
+		public async Task<ActionResult<Status>> UpdatePassword(string email, string newPassword)
+		{
+            Status U = new();
+			var user = await _userManager.FindByEmailAsync(email);
+			if (user == null)
+			{
+				U.Message = "Can not Find Email or Otp";
+				U.statusCode = 1;
+			}
+			string newPasswordHash = _userManager.PasswordHasher.HashPassword(user, newPassword);
+			user.PasswordHash = newPasswordHash;
+			var result = await _userManager.UpdateAsync(user);
+			if (result.Succeeded)
+			{
+				U.Message = "Password Change Successfully!!";
+				U.statusCode = 1;
+				return U;
+			}
+            else
+            {
+				U.Message = result.Errors.ToString();
+				U.statusCode = 1;
+                return U;
+			}
+#reset Password==>
+public async Task<ActionResult<Status>> resetPassword(string email)
+        {
+            Status s = new();
+            var user = await _userManager.FindByEmailAsync(email);
+            if (user == null)
+            {
+                s.statusCode= 0;
+                s.Message = "User Does Not Exists";
+                return s;
+            }
+            var Token = await _userManager.GeneratePasswordResetTokenAsync(user);
+            s.statusCode = 1;
+            s.Message = Token.ToString();
+            //return s;
+            return Ok(new {token=Token});
+        }
+===========================================================Send Email ==================================================================
+[HttpPost("sendemail")]
+		public async Task<ActionResult<Status>> SendEmail(string email)
+		{
+			Status s = new Status();
+			//var user = await _userManager.GetUserAsync(User);
+			var user=await _userManager.FindByEmailAsync(email);
+			if (user == null)
+			{
+				return NotFound();
+			}
+			var token = await _userManager.GenerateEmailConfirmationTokenAsync(user);
+            //var confirmationUrl = $"{_config["AppBaseUrl"]}/verify-email/{HttpUtility.UrlEncode(email)}/{HttpUtility.UrlEncode(token)}";
+            var confirmationUrl = Url.Action(nameof(ConfirmEmail), "Account", new { token = token, email = email},Request.Scheme);
+            //var ConfirmLink = Url.Action("ConfirmEmail", "Account", new { userId = user.Id, token }, HttpContext.Request.Scheme, HttpContext.Request.Host.Value);//HttpContext.Request.Host.ToString())
+			var emailContent = _unitOfWork.accountRepository.GetEmailContent(confirmationUrl, email, user.Name, _webHostEnvironment.WebRootPath);
+			var emailService = new EmailHelper();
+			bool emailResponse = emailService.SendEmailRegistration(email, emailContent, "Confirm your email address to get started on EPL_Group", AppSettings);
+			if (emailResponse)
+			{
+				s.statusCode = 1;
+				s.Message = "Please Verify Your Email";
+                s.Token= token;
+				return s;
+			}
+            else
+            {
+				s.statusCode = 0;
+				s.Message = "Email not send something went wrong";
+				return s;
+			}
+		}
+		[HttpGet("ConfirmEmail")]
+		public async Task<ActionResult<Status>> ConfirmEmail(string token,string email)
+		{
+			Status s = new Status();
+			var user = await _userManager.FindByEmailAsync(email);
+			if (user == null)
+			{
+				// User not found, return 404 error
+				return NotFound();
+			}
+			// Verify the email with the token
+			var result = await _userManager.ConfirmEmailAsync(user, token);
+			if (result.Succeeded)
+			{
+				s.statusCode =1;
+				s.Message = "Email verified";
+				return s;
+			}
+			else
+			{
+				
+				var errors = result.Errors.Select(e => e.Description);
+				return BadRequest(new { Errors = errors });
+			}
+		}
