@@ -1,0 +1,90 @@
+here is a Controller method ==>
+ public async Task<IActionResult> CrudImageUpdate([FromBody] ICRUDModel<ImageLibary> value, string action)
+ {
+     if (value.value.ID > 0)
+     {
+         var updateimg = _context.ImageLibary.Find(value.value.ID);
+         if (value.value != null)
+         {
+             if (updateimg != null)
+             {
+                 if(updateimg.ImageName != value.value.ImageName)
+                 {
+                    var OldImageNameDir=_hostingEnv.WebRootPath + $@"\ImageLabrary\{updateimg.ImageName}";
+                     var NewImageNameDir = _hostingEnv.WebRootPath + $@"\ImageLabrary\BigImage\{value.value.ImageName}";
+                     var updateimage = Common.UpdateImageName(OldImageNameDir, NewImageNameDir);
+                     if (updateimage)
+                     {
+                         updateimg.ImageName = value.value.ImageName;
+                     }
+                 }
+                 
+                 updateimg.CategoryName = value.value.CategoryName == null ? updateimg.CategoryName : value.value.CategoryName;
+                 updateimg.Subcategory = value.value.Subcategory == null ? updateimg.Subcategory : value.value.Subcategory;
+                 updateimg.ModifiedDate = DateTime.UtcNow;
+                 var updateimglab = _context.ImageLibary.Update(updateimg);
+                 _context.SaveChanges();
+             }
+         }
+     }
+     return Json(value.value);
+ }====>
+================================Common Method ==========================================
+using MasterGenerator.Data.Entity;
+using MasterGenerator.Model.Model;
+using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.Data.SqlClient;
+using NPOI.OpenXmlFormats.Dml;
+using System.Data;
+
+namespace MasterGenerator.UI.Models
+{
+    public class Common
+    {
+        public static DataTable ExecuteData(string[,] param, string proc)
+        {
+            string Constr = "Data Source=DESKTOP-T4MQ4KH; Initial Catalog=MasterGeneratorNew; Integrated Security=true";
+            SqlConnection con = new SqlConnection(Constr);
+            SqlCommand cmd = new SqlCommand(proc, con);
+            cmd.CommandType = CommandType.StoredProcedure;
+            for (int i = 0; i < param.Length / 2; i++)
+            {
+                cmd.Parameters.AddWithValue(param[i, 0], param[i, 1]);
+            }
+            DataTable dt = new DataTable();
+            SqlDataAdapter da = new SqlDataAdapter(cmd);
+            da.Fill(dt);
+            return dt;
+        }
+        public static DataTable GetAllCollection(string proc)
+        {
+            string Constr = "Data Source=DESKTOP-T4MQ4KH; Initial Catalog=MasterGeneratorNew; Integrated Security=true";
+            SqlConnection con = new SqlConnection(Constr);
+            SqlCommand cmd = new SqlCommand("Select Name From ", con);
+            cmd.CommandType = CommandType.Text;
+            
+            DataTable dt = new DataTable();
+            SqlDataAdapter da = new SqlDataAdapter(cmd);
+            da.Fill(dt);
+            return dt;
+        }
+        public static bool UpdateImageName(string oldFilePath, string newFileName)
+        {
+            string NewImageNameDir = Path.Combine(oldFilePath, newFileName);
+            string oldImageExtension = Path.GetExtension(oldFilePath);
+            string newImageWithExtension = Path.ChangeExtension(NewImageNameDir, oldImageExtension);
+            try
+            {
+                File.Move(oldFilePath, newImageWithExtension);
+                return true;
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error updating image name: {ex.Message}");
+                return false;
+            }
+        }
+    }
+    
+}
