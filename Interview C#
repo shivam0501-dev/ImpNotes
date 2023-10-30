@@ -1,0 +1,10 @@
+`What is the difference between static, public, and void?
+                Public: It is an access modifier in C# (and many other languages) that makes a member (variable, method, class) accessible from any other code in the same assembly or project. Public members are visible to all.
+Jagged Arrays:
+              A jagged array is an array of arrays, where each element of the outer array is an array itself. These inner arrays can have different lengths, which is a key difference from a rectangular or multidimensional array, where all dimensions have the same size.
+
+Benefit of 'Using' Statement in C#:
+                    The using statement is used to ensure that IDisposable objects are properly disposed of when they are no longer needed. It automatically calls the Dispose method on the object when the block is exited, helping to free up resources and prevent memory leaks.
+
+Serialization:
+            Serialization is the process of converting an object into a format (often binary or XML) that can be easily stored, transmitted, or reconstructed at a later time. This is commonly used for data storage, network communication, and object persistence.
