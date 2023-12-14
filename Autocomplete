@@ -1,0 +1,48 @@
+       @Html.EditorFor(model => model.Name, new { htmlAttributes = new { @class = "form-control", @onfocus = "AutoComplete('txtUTMGridZone','UTMGridZone')", @id = "txtUTMGridZone" } })
+
+
+<script src="http://ajax.googleapis.com/ajax/libs/jquery/1.11.1/jquery.min.js"></script>
+<link rel="stylesheet" href="//code.jquery.com/ui/1.11.4/themes/smoothness/jquery-ui.css">
+<script src="//code.jquery.com/ui/1.11.4/jquery-ui.js"></script>
+
+
+<script>
+    function AutoComplete(Id, GetType) {
+        $('#' + Id).autocomplete({
+            source: function (request, response) {
+                $.ajax({
+                    url: "/AutoComplete/Index",
+                    type: "POST",
+                    dataType: "json",
+                    data: { Prefix: request.term, GetType: GetType },
+                    success: function (data) {
+                        response($.map(data, function (item) {
+                            return { label: item, value: item };
+                        }))
+                    }
+                })
+            },
+            messages: {
+                noResults: "", results: ""
+            }
+        });
+    }
+</script>
+
+
+Create Proc [dbo].[USP_AutoComplete](
+@Prefix varchar(max),
+@GetType varchar(50)
+)
+as
+Begin
+if(@GetType='UTMGridZone')
+Begin
+Select SiteName From
+sites Where (SiteName Like ''+@Prefix+'%') Order By SiteName
+End
+Else if(@GetType='Mobile')
+Begin
+Select State From
+states Where (State Like ''+@Prefix+'%')
+end
